@@ -1,0 +1,13 @@
+{ 
+    "autohtml.helloWorld": "helloWorld",
+    "inputDownloadUrl": "请输入要下载的链接",
+    "inputNewUrl": "输入新链接",
+    "downloading": "正在下载...",
+    "downloadSuccess": "下载成功: {0}",
+    "downloadFail": "下载失败: {0}",
+    "deleteHistory": "删除历史记录",
+    "deleteHistoryDesc": "选择要删除的下载链接",
+    "selectDeleteHistory": "请选择要删除的历史链接",
+    "deleteSuccess": "删除成功",
+    "deleteTip": "点击可下载，或选择下方删除历史"
+}
