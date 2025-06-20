@@ -1,71 +1,56 @@
-# vs-ex-autohtml README
+# autohtml VS Code 插件
 
-This is the README for your extension "vs-ex-autohtml". After writing up a brief description, we recommend including the following sections.
+## 简介
 
-## Features
+autohtml 是一个 VS Code 扩展，旨在提升 HTML 项目模板的获取与自动化处理效率。支持一键下载远程模板、拷贝本地模板、自动解压、资源整理、历史记录管理等功能，适合前端开发者快速搭建项目结构。
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+## 主要功能
 
-For example if there is an image subfolder under your extension project workspace:
+- **一键获取模板**  
+  - 支持输入远程链接下载 zip 包并自动解压
+  - 支持选择本地文件夹作为模板拷贝
+  - 下载/拷贝历史记录，快速复用
 
-\!\[feature X\]\(images/feature-x.png\)
+- **智能解压与整理**  
+  - zip 解压后自动去除多余嵌套目录
+  - 根目录下图片（.svg/.png/.jpg）自动剪切到 images 目录，并重命名防止冲突
+  - 支持自定义图片目录（默认 images）
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- **HTML 自动处理**  
+  - 自动替换 html 文件中 img 标签的 src 路径为新资源路径
+  - 支持将模板 html 内容插入 base.html 的 body 中，生成新 html
 
-## Requirements
+- **CSS 自动合并**  
+  - 自动将 style.css 内容合并到 css/style.css 尾部，避免重复
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- **历史记录管理**  
+  - 下载/本地模板历史分开管理，支持删除单条历史
 
-## Extension Settings
+## 配置项
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+可在 VS Code 设置中搜索 `autohtml` 进行自定义：
 
-For example:
+- `autohtml.m01.ignore`  
+  拷贝本地模板时忽略的文件/文件夹正则（默认排除 node_modules、.git 等）
+- `autohtml.m02.baseHtml`  
+  基础 html 文件名（默认 base.html）
+- `autohtml.m03.imagesDir`  
+  图片输出目录（默认 images）
+- `autohtml.m04.cssDir`  
+  CSS 输出目录（默认 css）
+- `autohtml.indexHtml`  
+  处理的主 html 文件名（默认与 zip 文件同名）
 
-This extension contributes the following settings:
+## 使用方法
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+1. **右键资源管理器文件夹，选择“获取模板”**
+2. 选择“远程下载”或“本地拷贝”，按提示操作
+3. 若为 zip 包，自动解压并整理资源
+4. 若有 base.html，自动合成主 html
+5. 可通过设置自定义各类目录和文件名
 
-## Known Issues
+## 贡献与反馈
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+如有建议、Bug 或需求，欢迎在 [GitHub 仓库](https://github.com/wufan123/vs-ex-autohtml) 提 Issue。
 
 ---
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
