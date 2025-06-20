@@ -22,7 +22,7 @@ export async function refactor(context: vscode.ExtensionContext, uri?: vscode.Ur
                 .on('entry', (entry: unzipper.Entry) => {
                     const fileName = entry.path;
                     if (/^(index\.html|vars\.css)$/i.test(fileName)) {
-                        entry.autodrain(); // 跳过目录和 index.html
+                        entry.autodrain();
                     } else {
                         const destPath = path.join(folderPath, fileName);
                         // 确保目录存在
@@ -48,8 +48,8 @@ export async function refactor(context: vscode.ExtensionContext, uri?: vscode.Ur
         fs.rmdirSync(extractedPath);
     }
     fs.unlinkSync(zipPath);
-    // 新增：将根目录下所有图片文件剪切到配置目录
-    const imagesDir = path.join(folderPath, imagesDirName);
+    // 将根目录下所有图片文件剪切到配置目录
+    const imagesDir = path.join(folderPath, `${imagesDirName}/${baseName}`);
     if (!fs.existsSync(imagesDir)) {
         fs.mkdirSync(imagesDir);
     }
@@ -63,8 +63,23 @@ export async function refactor(context: vscode.ExtensionContext, uri?: vscode.Ur
             fs.renameSync(src, dst);
         }
     }
+    // 将css放到指定目录，并重命名
     await new Promise(resolve => setTimeout(resolve, 100));
-    // 剪切图片后，处理html
+    const cssDirName = config.get<string>('m04.cssDir', 'css');
+    const stylePath = path.join(folderPath, 'style.css');
+    const cssDir = path.join(folderPath, cssDirName);
+    let newCssName = '';
+    let newCssPath = '';
+    if (fs.existsSync(stylePath)) {
+        if (!fs.existsSync(cssDir)) {
+            fs.mkdirSync(cssDir);
+        }
+        newCssName = `${baseName}.css`;
+        newCssPath = path.join(cssDir, newCssName);
+        fs.renameSync(stylePath, newCssPath);
+    }
+    await new Promise(resolve => setTimeout(resolve, 100));
+    //处理html
     const baseHtmlName = config.get<string>('m02.baseHtml', 'base.html');
     const htmlPath = path.join(folderPath, `${baseName}.html`);
     const baseHtmlPath = path.join(folderPath, baseHtmlName);
@@ -81,25 +96,19 @@ export async function refactor(context: vscode.ExtensionContext, uri?: vscode.Ur
             if (imageExts.includes(ext)) {
                 const fileName = path.basename(src);
                 const newName = baseName + '_' + fileName;
-                const newSrc = imagesDirName + '/' + newName;
+                const newSrc = `${imagesDirName}/${baseName}/${newName}`;
                 return p1 + newSrc + p3;
             }
             return match;
         });
+        if (newCssName) {
+            const cssHref = `${cssDirName}/${newCssName}`;
+            html = `<link rel="stylesheet" href="${cssHref}">\n` + html;
+        }
         // 将 html 内容插入 base.html 的 <!-- AUTOHTML --> 占位符
         baseHtml = baseHtml.replace('<!-- AUTOHTML -->', html);
         fs.writeFileSync(htmlPath, baseHtml, 'utf-8');
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const cssDirName = config.get<string>('m04.cssDir', 'css/style.css');
-    const stylePath = path.join(folderPath, 'style.css');
-    const cssStylePath = path.join(folderPath, cssDirName);
-    if (fs.existsSync(stylePath) && fs.existsSync(cssStylePath)) {
-        const styleContent = fs.readFileSync(stylePath, 'utf-8');
-        const cssContent = fs.readFileSync(cssStylePath, 'utf-8');
-        if (!cssContent.includes(styleContent)) {
-            fs.appendFileSync(cssStylePath, '\n' + styleContent);
-        }
-        fs.unlinkSync(stylePath);
-    }
+
+
 }

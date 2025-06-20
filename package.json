@@ -1,8 +1,12 @@
 {
   "name": "vs-ex-autohtml",
-  "displayName": "",
-  "description": "",
+  "displayName": "autohtml",
+  "description": "autohtml",
   "version": "0.0.1",
+  "publisher": "waslong",
+  "icon": "media/logo.png",
+  "license": "MIT",
+  "repository": "https://github.com/wufan123/vs-ex-autohtml",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -28,7 +32,7 @@
       "properties": {
         "autohtml.m01.ignore": {
           "type": "string",
-          "default": ".*\\.(zip|rar|scss|less|map)$|\\.vscode$|node_modules|\\.git$|\\.svn$|\\.hg$|\\.idea$|\\.DS_Store$|\\.vscode-test$|\\.history$|\\.history\\..*",
+          "default": ".*\\.(zip|rar)$|\\.vscode$|node_modules|\\.git$|\\.svn$|\\.hg$|\\.idea$|\\.DS_Store$|\\.vscode-test$|\\.history$|\\.history\\..*",
           "description": "%copy.ignore%"
         },
         "autohtml.m02.baseHtml": {
@@ -43,7 +47,7 @@
         },
         "autohtml.m04.cssDir": {
           "type": "string",
-          "default": "css/style.css",
+          "default": "css",
           "description": "%cssDir.desc%"
         }
       }

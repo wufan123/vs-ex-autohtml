@@ -29,8 +29,9 @@
   "extracting": "正在解压...",
   "extractSuccess": "解压成功，已输出到: {0}",
   "downloadOrExtractError": "下载或解压错误",
-  "imagesDir.desc": "图片输出目录（相对当前操作目录，默认 images）",
+  "imagesDir.desc": "图片输出目录（相对当前操作目录，默认 ./images）",
+  "cssDir.desc": "样式输出目录（相对当前操作目录，默认 ./css）",
   "copy.ignore": "忽略需要拷贝的文件和目录。支持正则表达式。",
-  "baseHtml.desc": "模板名称文件名（默认base.html）",
+  "baseHtml.desc": "html模板文件名（默认base.html）,会拷贝该文件并对内容中的 <!-- AUTOHTML -->进行替换",
   "refactorHtmlOrBaseMissing": "未找到目标 HTML 或 base.html 文件。"
 }
