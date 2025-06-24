@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as nls from 'vscode-nls-i18n';
 import * as crypto from 'crypto';
+const imageExts = ['.svg', '.png', '.jpg'];
 
 export async function refactorPage(context: vscode.ExtensionContext, uri?: vscode.Uri) {
     if (!uri || !uri.fsPath || !/\.zip$/i.test(uri.fsPath)) {
@@ -16,9 +17,7 @@ export async function refactorPage(context: vscode.ExtensionContext, uri?: vscod
     const imagesDirName = config.get<string>('m03.imagesDir', 'images');
     const cssDirName = config.get<string>('m04.cssDir', 'css');
     const baseHtmlName = config.get<string>('m02.baseHtml', 'base.html');
-    const imageExts = ['.svg', '.png', '.jpg'];
     const baseName = path.basename(zipPath, '.zip');
-
     // 1. 解压缩
     await extractZip(zipPath, folderPath);
 
@@ -93,7 +92,7 @@ export async function refactorModule(context: vscode.ExtensionContext, uri?: vsc
     const config = vscode.workspace.getConfiguration('autohtml');
     const imagesDirName = config.get<string>('m03.imagesDir', 'images');
     const cssDirName = config.get<string>('m04.cssDir', 'css');
-    const imageExts = ['.svg', '.png', '.jpg'];
+
 
     // 1. 解压缩
     await extractZip(zipPath, folderPath);
@@ -141,6 +140,89 @@ export async function refactorModule(context: vscode.ExtensionContext, uri?: vsc
     vscode.window.showInformationMessage(nls.localize('refactorDone', baseName));
 
 }
+
+export function refactorResources(context: vscode.ExtensionContext, uri?: vscode.Uri) {
+    const config = vscode.workspace.getConfiguration('autohtml');
+    const imagesDirName = config.get<string>('m03.imagesDir', 'images');
+    let folderPath = uri?.fsPath;
+    if (!folderPath || !fs.lstatSync(folderPath).isDirectory()) {
+        folderPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+    }
+    const imagesRoot = path.join(folderPath, imagesDirName);
+    const publicDir = path.join(imagesRoot, 'public');
+    if (!fs.existsSync(publicDir)) {
+        fs.mkdirSync(publicDir, { recursive: true });
+    }
+    // 记录hash到public图片名的映射
+    const hashToPublicName: Record<string, string> = {};
+    // 记录原图片路径到public图片名的映射
+    const movedImages: Record<string, string> = {};
+    // 遍历imagesDirName下的所有子文件夹
+    const subDirs = fs.readdirSync(imagesRoot).filter(f => {
+        const full = path.join(imagesRoot, f);
+        return fs.statSync(full).isDirectory() && f !== 'public';
+    });
+
+    // 先收集所有图片的hash和路径
+    const hashToPaths: Record<string, string[]> = {};
+    for (const dir of subDirs) {
+        const dirPath = path.join(imagesRoot, dir);
+        const files = fs.readdirSync(dirPath);
+        for (const file of files) {
+            const ext = path.extname(file).toLowerCase();
+            if (!imageExts.includes(ext)) continue;
+            const filePath = path.join(dirPath, file);
+            const buf = fs.readFileSync(filePath);
+            const hash = crypto.createHash('sha256').update(buf).digest('hex');
+            if (!hashToPaths[hash]) hashToPaths[hash] = [];
+            hashToPaths[hash].push(filePath);
+        }
+    }
+
+    // 对于有重复内容的图片，只移动第一个到public，其余记录映射
+    for (const [hash, paths] of Object.entries(hashToPaths)) {
+        if (paths.length > 1) {
+            // 取第一个为主
+            const firstPath = paths[0];
+            const ext = path.extname(firstPath);
+            let publicName = path.basename(firstPath);
+            let publicPath = path.join(publicDir, publicName);
+            let i = 1;
+            while (fs.existsSync(publicPath)) {
+                publicName = `${path.basename(firstPath, ext)}_${i}${ext}`;
+                publicPath = path.join(publicDir, publicName);
+                i++;
+            }
+            fs.renameSync(firstPath, publicPath);
+            hashToPublicName[hash] = publicName;
+            movedImages[firstPath] = publicName;
+            // 其余的直接删除并记录映射
+            for (let j = 1; j < paths.length; j++) {
+                fs.unlinkSync(paths[j]);
+                movedImages[paths[j]] = publicName;
+            }
+        }
+    }
+    // movedImages 记录了所有被移动或删除的图片及其对应public下的文件名
+    vscode.window.showInformationMessage(nls.localize('refactorResourcesDone', String(Object.keys(movedImages).length)));
+    // 遍历 folderPath 下所有 .html 文件，替换图片路径
+    const htmlFiles = fs.readdirSync(folderPath).filter(f => f.endsWith('.html'));
+    for (const htmlFile of htmlFiles) {
+        const htmlFilePath = path.join(folderPath, htmlFile);
+        let htmlContent = fs.readFileSync(htmlFilePath, 'utf-8');
+        // 替换 img 标签 src 路径为 public 目录下的图片名（如果有映射）
+        htmlContent = htmlContent.replace(/(<img[^>]*src=["'])([^"']+)(["'][^>]*>)/gi, (match, p1, src, p3) => {
+            const absPath = path.isAbsolute(src) ? src : path.join(folderPath, src);
+            if (movedImages[absPath]) {
+                const newSrc = `${imagesDirName}/public/${movedImages[absPath]}`;
+                return p1 + newSrc + p3;
+            }
+            return match;
+        });
+        fs.writeFileSync(htmlFilePath, htmlContent, 'utf-8');
+    }
+}
+
 function copyCssContent(folderPath: string, cssDirName: string, pageName: string, moduleName: string) {
     const stylePath = path.join(folderPath, 'style.css');
     const pageCssPath = path.join(folderPath, cssDirName, `${pageName}.css`);
@@ -213,7 +295,6 @@ async function moveImages(folderPath: string, imagesDirName: string, pageName: s
     if (!fs.existsSync(imagesDir)) {
         fs.mkdirSync(imagesDir, { recursive: true });
     }
-
     const hashMap: Record<string, string> = {};
     // 记录已存在图片的内容hash
     // 记录原始文件名与新文件名的映射

@@ -3,6 +3,8 @@
   "getTheTemplate": "AUTOHTML_获取模板",
   "refactorPage": "AUTOHTML_重构页面",
   "refactorModule": "AUTOHTML_重构模块",
+  "insertAutoHtmlComment": "AUTOHTML_插入注释",
+  "refactorResources": "AUTOHTML_重构资源",
   "inputDownloadUrl": "请输入要下载的链接",
   "inputNewUrl": "输入新链接",
   "downloading": "正在下载...",
@@ -32,10 +34,10 @@
   "downloadOrExtractError": "下载或解压错误",
   "imagesDir.desc": "图片输出目录（相对当前操作目录，默认 ./images）",
   "cssDir.desc": "样式输出目录（相对当前操作目录，默认 ./css）",
-  "copy.ignore": "忽略需要拷贝的文件和目录。支持正则表达式。",
+  "copy.ignore": "忽略需要拷贝的文件和目录。支持正则表达式",
   "baseHtml.desc": "html模板文件名（默认base.html）,会拷贝该文件并对内容中的 <!-- AUTOHTML -->进行替换",
   "refactorHtmlMissing": "缺失html文件:{0}",
-  "refactorDone": "重构{0}完成。",
-  "moduleNameError": "模块zip包名称错误，应该用连接线连接页面名称和模块名称，比如{页面}-{模块}",
-  "insertAutoHtmlComment":"AUTOHTML_插入注释"
+  "refactorDone": "重构{0}完成",
+  "refactorResourcesDone": "重构资源完成，文件数量：{0}",
+  "moduleNameError": "模块zip包名称错误，应该用连接线连接页面名称和模块名称，比如{页面}-{模块}"
 }
