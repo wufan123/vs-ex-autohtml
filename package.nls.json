@@ -1,7 +1,8 @@
 {
   "autohtmlSettings": "插件设置",
   "getTheTemplate": "AUTOHTML_获取模板",
-  "refactor": "AUTOHTML_重构",
+  "refactorPage": "AUTOHTML_重构页面",
+  "refactorModule": "AUTOHTML_重构模块",
   "inputDownloadUrl": "请输入要下载的链接",
   "inputNewUrl": "输入新链接",
   "downloading": "正在下载...",
@@ -33,5 +34,7 @@
   "cssDir.desc": "样式输出目录（相对当前操作目录，默认 ./css）",
   "copy.ignore": "忽略需要拷贝的文件和目录。支持正则表达式。",
   "baseHtml.desc": "html模板文件名（默认base.html）,会拷贝该文件并对内容中的 <!-- AUTOHTML -->进行替换",
-  "refactorHtmlOrBaseMissing": "未找到目标 HTML 或 base.html 文件。"
+  "refactorHtmlOrBaseMissing": "未找到目标 HTML 或 base.html 文件。",
+  "refactorDone": "重构{0}完成。",
+  "moduleNameError": "模块zip包名称不符合格式，应该用连接线连接页面名称和模块名称，比如{页面}-{模块}"
 }

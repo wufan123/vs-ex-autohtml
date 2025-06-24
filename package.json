@@ -22,8 +22,16 @@
         "title": "%getTheTemplate%"
       },
       {
-        "command": "vs-ex-autohtml.refactor",
-        "title": "%refactor%"
+        "command": "vs-ex-autohtml.refactorPage",
+        "title": "%refactorPage%"
+      },
+      {
+        "command": "vs-ex-autohtml.refactorModule",
+        "title": "%refactorModule%"
+      },
+      {
+        "command": "vs-ex-autohtml.insertAutoHtmlComment",
+        "title": "%insertAutoHtmlComment%"
       }
     ],
     "configuration": {
@@ -54,16 +62,27 @@
     },
     "menus": {
       "explorer/context": [
-        {
-          "command": "vs-ex-autohtml.getTheTemplate",
-          "when": "explorerResourceIsFolder == true",
-          "group": "navigation@100"
-        },
-        {
-          "command": "vs-ex-autohtml.refactor",
-          "when": "explorerResourceIsFolder == false && resourceExtname == .zip",
-          "group": "navigation@101"
-        }
+      {
+        "command": "vs-ex-autohtml.getTheTemplate",
+        "when": "explorerResourceIsFolder == true",
+        "group": "navigation@100"
+      },
+      {
+        "command": "vs-ex-autohtml.refactorPage",
+        "when": "explorerResourceIsFolder == false && resourceExtname == .zip",
+        "group": "navigation@101"
+      },
+      {
+        "command": "vs-ex-autohtml.refactorModule",
+        "when": "explorerResourceIsFolder == false && resourceExtname == .zip",
+        "group": "navigation@102"
+      }
+      ],
+      "editor/context": [
+      {
+        "command": "vs-ex-autohtml.insertAutoHtmlComment",
+        "group": "navigation@100"
+      }
       ]
     }
   },
