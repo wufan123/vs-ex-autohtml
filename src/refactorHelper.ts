@@ -4,6 +4,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as nls from 'vscode-nls-i18n';
 import * as crypto from 'crypto';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
+const pipelineAsync = promisify(pipeline);
+
 const imageExts = ['.svg', '.png', '.jpg'];
 
 export async function refactorPage(context: vscode.ExtensionContext, uri?: vscode.Uri) {
@@ -34,41 +38,7 @@ export async function refactorPage(context: vscode.ExtensionContext, uri?: vscod
     const { newCssName, newCssPath } = await moveCss(folderPath, cssDirName, baseName);
 
     // 6. 处理HTML
-    const htmlPath = path.join(folderPath, `${baseName}.html`);
-    const baseHtmlPath = path.join(folderPath, baseHtmlName);
-    if (!fs.existsSync(htmlPath) || !fs.existsSync(baseHtmlPath)) {
-        let missingFiles: string[] = [];
-        if (!fs.existsSync(htmlPath)) missingFiles.push(baseName);
-        if (!fs.existsSync(baseHtmlPath)) missingFiles.push(baseHtmlName);
-        vscode.window.showErrorMessage(nls.localize('refactorHtmlMissing') + ': ' + missingFiles.join(', '));
-        return;
-    }
-    let html = fs.readFileSync(htmlPath, 'utf-8');
-    let baseHtml = fs.readFileSync(baseHtmlPath, 'utf-8');
-    html = html.replace(/(<img[^>]*src=["'])([^"']+)(["'][^>]*>)/gi, (match, p1, src, p3) => {
-        const ext = path.extname(src).toLowerCase();
-        if (imageExts.includes(ext)) {
-            const fileName = path.basename(src);
-            // 优先用 fileMap 映射
-            const mappedName = fileMap[fileName] || (baseName + '_' + fileName);
-            const newSrc = `${imagesDirName}/${baseName}/${mappedName}`;
-            return p1 + newSrc + p3;
-        }
-        return match;
-    });
-    if (newCssName) {
-        const cssHref = `${cssDirName}/${newCssName}`;
-        // 插入到baseHtml的<head>标签内的尾部
-        baseHtml = baseHtml.replace(
-            /(<\/head>)/i,
-            `    <link rel="stylesheet" href="${cssHref}">\n$1`
-        );
-    }
-    baseHtml = baseHtml.replace(/<!--\s*autohtml\s*-->/i, html);
-    fs.writeFileSync(htmlPath, baseHtml, 'utf-8');
-    // 在面板中打开该html
-    const doc = await vscode.workspace.openTextDocument(htmlPath);
-    await vscode.window.showTextDocument(doc, { preview: false });
+    await processHtml(folderPath, baseName, imagesDirName, imageExts, newCssName, cssDirName, baseHtmlName, fileMap);
 
     vscode.window.showInformationMessage(nls.localize('refactorDone', baseName));
 }
@@ -254,85 +224,74 @@ async function deleteZip(zipPath: string) {
     fs.unlinkSync(zipPath);
 }
 
-async function extractZip(zipPath: string, folderPath: string) {
-    const zipBuffer = fs.readFileSync(zipPath);
-    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: nls.localize('extracting') }, async () => {
-        await new Promise<void>((resolve, reject) => {
-            unzipper.Parse()
-                .on('entry', (entry: unzipper.Entry) => {
-                    const fileName = entry.path;
-                    if (/^(index\.html|vars\.css)$/i.test(fileName)) {
-                        entry.autodrain();
-                    } else {
-                        const destPath = path.join(folderPath, fileName);
-                        fs.mkdirSync(path.dirname(destPath), { recursive: true });
-                        entry.pipe(fs.createWriteStream(destPath));
-                    }
-                })
-                .on('close', resolve)
-                .on('error', reject)
-                .end(zipBuffer);
-        });
-    });
-}
-
-async function handleExtractedFolder(folderPath: string, baseName: string) {
-    const extractedPath = path.join(folderPath, baseName);
-    if (fs.existsSync(extractedPath) && fs.lstatSync(extractedPath).isDirectory()) {
-
-        const files = fs.readdirSync(extractedPath);
-        for (const f of files) {
-            const src = path.join(extractedPath, f);
-            const dst = path.join(folderPath, f);
-            fs.renameSync(src, dst);
-        }
-        fs.rmdirSync(extractedPath);
-    }
-}
-
-async function moveImages(folderPath: string, imagesDirName: string, pageName: string, imageExts: string[] = ['.svg', '.png', '.jpg'], moduleName?: string) {
+// 优化图片去重与移动，采用流式处理和异步API
+async function moveImages(
+    folderPath: string,
+    imagesDirName: string,
+    pageName: string,
+    imageExts: string[] = ['.svg', '.png', '.jpg'],
+    moduleName?: string
+) {
     const imagesDir = path.join(folderPath, `${imagesDirName}/${pageName}`);
     if (!fs.existsSync(imagesDir)) {
         fs.mkdirSync(imagesDir, { recursive: true });
     }
     const hashMap: Record<string, string> = {};
-    // 记录已存在图片的内容hash
-    // 记录原始文件名与新文件名的映射
     const fileMap: Record<string, string> = {};
 
+    // 先扫描 imagesDir 目录下已有图片，避免重复
     for (const file of fs.readdirSync(imagesDir)) {
         const filePath = path.join(imagesDir, file);
         if (fs.statSync(filePath).isFile()) {
-            const buf = fs.readFileSync(filePath);
-            const hash = crypto.createHash('sha256').update(buf).digest('hex');
+            const hash = await hashFile(filePath);
             hashMap[hash] = file;
         }
     }
 
+    // 处理根目录下的图片
     for (const file of fs.readdirSync(folderPath)) {
         const ext = path.extname(file).toLowerCase();
         if (imageExts.includes(ext)) {
             const src = path.join(folderPath, file);
-            const buf = fs.readFileSync(src);
-            const hash = crypto.createHash('sha256').update(buf).digest('hex');
+            const hash = await hashFile(src);
             if (hashMap[hash]) {
-                // 内容一样，删除当前文件，不移动 
-                fs.unlinkSync(src);
-                fileMap[file] = hashMap[hash]; // 记录映射
+                // 内容一样，删除当前文件，不移动
+                await fs.promises.unlink(src);
+                fileMap[file] = hashMap[hash];
             } else {
                 const newName = moduleName ? `${pageName}_${moduleName}_${file}` : `${pageName}_${file}`;
                 const dst = path.join(imagesDir, newName);
-                fs.renameSync(src, dst);
+                await moveFileStream(src, dst);
                 hashMap[hash] = newName;
-                fileMap[file] = newName; // 记录映射
+                fileMap[file] = newName;
             }
         }
     }
     return { imagesDir, fileMap };
 }
 
+// 用流式方式移动大文件
+async function moveFileStream(src: string, dst: string) {
+    await pipelineAsync(
+        fs.createReadStream(src),
+        fs.createWriteStream(dst)
+    );
+    await fs.promises.unlink(src);
+}
+
+// 用流式方式计算文件hash，避免大文件占用内存
+function hashFile(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const hash = crypto.createHash('sha256');
+        const stream = fs.createReadStream(filePath);
+        stream.on('data', chunk => hash.update(chunk));
+        stream.on('end', () => resolve(hash.digest('hex')));
+        stream.on('error', reject);
+    });
+}
+
+// 优化CSS移动与合并，采用异步API和流式追加
 async function moveCss(folderPath: string, cssDirName: string, baseName: string) {
-    await new Promise(resolve => setTimeout(resolve, 100));
     const stylePath = path.join(folderPath, 'style.css');
     const cssDir = path.join(folderPath, cssDirName);
     let newCssName = '';
@@ -343,8 +302,102 @@ async function moveCss(folderPath: string, cssDirName: string, baseName: string)
         }
         newCssName = `${baseName}.css`;
         newCssPath = path.join(cssDir, newCssName);
-        fs.renameSync(stylePath, newCssPath);
+        // 如果目标已存在，采用流式追加
+        if (fs.existsSync(newCssPath)) {
+            const styleContent = await fs.promises.readFile(stylePath, 'utf-8');
+            const cssContent = await fs.promises.readFile(newCssPath, 'utf-8');
+            if (!cssContent.includes(styleContent)) {
+                await fs.promises.appendFile(newCssPath, '\n' + styleContent);
+            }
+            await fs.promises.unlink(stylePath);
+        } else {
+            await moveFileStream(stylePath, newCssPath);
+        }
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
     return { newCssName, newCssPath };
+}
+
+// 优化HTML读写，采用异步API
+async function processHtml(
+    folderPath: string,
+    baseName: string,
+    imagesDirName: string,
+    imageExts: string[],
+    newCssName: string,
+    cssDirName: string,
+    baseHtmlName: string,
+    fileMap: Record<string, string>
+) {
+    const htmlPath = path.join(folderPath, `${baseName}.html`);
+    const baseHtmlPath = path.join(folderPath, baseHtmlName);
+    if (!fs.existsSync(htmlPath) || !fs.existsSync(baseHtmlPath)) {
+        vscode.window.showErrorMessage(nls.localize('refactorHtmlOrBaseMissing'));
+        return;
+    }
+    let html = await fs.promises.readFile(htmlPath, 'utf-8');
+    let baseHtml = await fs.promises.readFile(baseHtmlPath, 'utf-8');
+    html = html.replace(/(<img[^>]*src=["'])([^"']+)(["'][^>]*>)/gi, (match, p1, src, p3) => {
+        const ext = path.extname(src).toLowerCase();
+        if (imageExts.includes(ext)) {
+            const fileName = path.basename(src);
+            const mappedName = fileMap[fileName] || (baseName + '_' + fileName);
+            const newSrc = `${imagesDirName}/${baseName}/${mappedName}`;
+            return p1 + newSrc + p3;
+        }
+        return match;
+    });
+    if (newCssName) {
+        const cssHref = `${cssDirName}/${newCssName}`;
+        baseHtml = baseHtml.replace(
+            /(<\/head>)/i,
+            `    <link rel="stylesheet" href="${cssHref}">\n$1`
+        );
+    }
+    baseHtml = baseHtml.replace(/<!--\s*autohtml\s*-->/i, html);
+    await fs.promises.writeFile(htmlPath, baseHtml, 'utf-8');
+    const doc = await vscode.workspace.openTextDocument(htmlPath);
+    await vscode.window.showTextDocument(doc, { preview: false });
+}
+
+// 优化解压，采用流式写入
+async function extractZip(zipPath: string, folderPath: string) {
+    await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: nls.localize('extracting') },
+        async () => {
+            await new Promise<void>((resolve, reject) => { 
+                fs.createReadStream(zipPath)
+                    .pipe(
+                        unzipper.Parse()
+                            .on('entry', async (entry: unzipper.Entry) => {
+                                const fileName = path.basename(entry.path);
+                                if (/^(index\.html|vars\.css)$/i.test(fileName)) {
+                                    entry.autodrain();
+                                } else {
+                                    const destPath = path.join(folderPath, entry.path);
+                                    // 确保目录存在
+                                    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+                                    entry.pipe(fs.createWriteStream(destPath));
+                                }
+                            })
+                            .on('close', resolve)
+                            .on('error', reject)
+                    );
+            });
+        }
+    );
+}
+
+// 其它辅助函数可保持原样或根据需要优化
+
+async function handleExtractedFolder(folderPath: string, baseName: string) {
+    const extractedPath = path.join(folderPath, baseName);
+    if (fs.existsSync(extractedPath) && fs.lstatSync(extractedPath).isDirectory()) {
+        const files = fs.readdirSync(extractedPath);
+        for (const f of files) {
+            const src = path.join(extractedPath, f);
+            const dst = path.join(folderPath, f);
+            fs.renameSync(src, dst);
+        }
+        fs.rmdirSync(extractedPath);
+    }
 }
