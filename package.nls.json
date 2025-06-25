@@ -16,7 +16,7 @@
   "deleteSuccess": "Deleted successfully",
   "deleteTip": "Click to download, or select below to delete history",
   "getTemplateFromUrl": "Download template from link",
-  "getTemplateFromUrlDesc": "Enter or select a link to download the template file (such as zip, source package, etc.)",
+  "getTemplateFromUrlDesc": "Enter or select a link to download the template zip file",
   "getTemplateFromLocal": "Copy template from local folder",
   "getTemplateFromLocalDesc": "Select an existing local template folder to copy",
   "chooseTemplateSource": "Please select the template source",

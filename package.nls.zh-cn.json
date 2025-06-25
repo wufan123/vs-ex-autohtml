@@ -16,7 +16,7 @@
   "deleteSuccess": "删除成功",
   "deleteTip": "点击可下载，或选择下方删除历史",
   "getTemplateFromUrl": "从链接下载模板",
-  "getTemplateFromUrlDesc": "输入或选择一个链接，下载模板文件（如 zip、源码包等）",
+  "getTemplateFromUrlDesc": "输入或选择一个链接，下载模板文件zip压缩包",
   "getTemplateFromLocal": "从本地文件夹拷贝模板",
   "getTemplateFromLocalDesc": "选择本地已有的模板文件夹进行拷贝",
   "chooseTemplateSource": "请选择模板来源",
