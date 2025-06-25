@@ -184,7 +184,7 @@ export async function refactorResources(context: vscode.ExtensionContext, uri?: 
                 // 遍历imagesDirName下的所有子文件夹
                 const subDirs = fs.readdirSync(imagesRoot).filter(f => {
                     const full = path.join(imagesRoot, f);
-                    return fs.statSync(full).isDirectory() && f !== 'public';
+                    return fs.statSync(full).isDirectory();
                 });
 
                 progress.report({ message: nls.localize('collectingImages'), increment: 10 });
@@ -242,6 +242,7 @@ export async function refactorResources(context: vscode.ExtensionContext, uri?: 
                         progress.report({ message: nls.localize('processingImages'), increment: 30 * (processed / hashEntries.length) });
                     }
                 }
+
 
                 progress.report({ message: nls.localize('processingHtml'), increment: 50 });
                 if (token.isCancellationRequested) return;
