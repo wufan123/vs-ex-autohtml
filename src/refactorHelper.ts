@@ -111,7 +111,7 @@ export async function refactorModule(context: vscode.ExtensionContext, uri?: vsc
 
 }
 
-export function refactorResources(context: vscode.ExtensionContext, uri?: vscode.Uri) {
+export async function refactorResources(context: vscode.ExtensionContext, uri?: vscode.Uri) {
     const config = vscode.workspace.getConfiguration('autohtml');
     const imagesDirName = config.get<string>('m03.imagesDir', 'images');
     let folderPath = uri?.fsPath;
@@ -142,8 +142,7 @@ export function refactorResources(context: vscode.ExtensionContext, uri?: vscode
             const ext = path.extname(file).toLowerCase();
             if (!imageExts.includes(ext)) continue;
             const filePath = path.join(dirPath, file);
-            const buf = fs.readFileSync(filePath);
-            const hash = crypto.createHash('sha256').update(buf).digest('hex');
+            const hash = await hashFile(filePath);
             if (!hashToPaths[hash]) hashToPaths[hash] = [];
             hashToPaths[hash].push(filePath);
         }
@@ -173,8 +172,7 @@ export function refactorResources(context: vscode.ExtensionContext, uri?: vscode
             }
         }
     }
-    // movedImages 记录了所有被移动或删除的图片及其对应public下的文件名
-    vscode.window.showInformationMessage(nls.localize('refactorResourcesDone', String(Object.keys(movedImages).length)));
+
     // 遍历 folderPath 下所有 .html 文件，替换图片路径
     const htmlFiles = fs.readdirSync(folderPath).filter(f => f.endsWith('.html'));
     for (const htmlFile of htmlFiles) {
@@ -191,6 +189,8 @@ export function refactorResources(context: vscode.ExtensionContext, uri?: vscode
         });
         fs.writeFileSync(htmlFilePath, htmlContent, 'utf-8');
     }
+    // movedImages 记录了所有被移动或删除的图片及其对应public下的文件名
+    vscode.window.showInformationMessage(nls.localize('refactorResourcesDone', String(Object.keys(movedImages).length)));
 }
 
 function copyCssContent(folderPath: string, cssDirName: string, pageName: string, moduleName: string) {
@@ -282,11 +282,31 @@ async function moveFileStream(src: string, dst: string) {
 // 用流式方式计算文件hash，避免大文件占用内存
 function hashFile(filePath: string): Promise<string> {
     return new Promise((resolve, reject) => {
-        const hash = crypto.createHash('sha256');
-        const stream = fs.createReadStream(filePath);
-        stream.on('data', chunk => hash.update(chunk));
-        stream.on('end', () => resolve(hash.digest('hex')));
-        stream.on('error', reject);
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.svg') {
+            // 用流式方式读取SVG并处理，避免大文件占用内存
+            let cleaned = '';
+            const stream = fs.createReadStream(filePath, { encoding: 'utf-8' });
+            stream.on('data', chunk => {
+                cleaned += chunk;
+            });
+            stream.on('end', () => {
+                cleaned = cleaned
+                    .replace(/id="[^"]*"/g, '')
+                    .replace(/xlink:href="[^"]*"/g, '')
+                    .replace(/url\(#.*?\)/g, '')
+                    .replace(/\s+/g, '');
+                const hash = crypto.createHash('sha256').update(cleaned).digest('hex');
+                resolve(hash);
+            });
+            stream.on('error', reject);
+        } else {
+            const hash = crypto.createHash('sha256');
+            const stream = fs.createReadStream(filePath);
+            stream.on('data', chunk => hash.update(chunk));
+            stream.on('end', () => resolve(hash.digest('hex')));
+            stream.on('error', reject);
+        }
     });
 }
 
@@ -364,7 +384,7 @@ async function extractZip(zipPath: string, folderPath: string) {
     await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: nls.localize('extracting') },
         async () => {
-            await new Promise<void>((resolve, reject) => { 
+            await new Promise<void>((resolve, reject) => {
                 fs.createReadStream(zipPath)
                     .pipe(
                         unzipper.Parse()
