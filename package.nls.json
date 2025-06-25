@@ -30,7 +30,7 @@
   "chooseLocalHistoryOrSelect": "Please select local template history or choose a new folder",
   "selectDeleteLocalHistory": "Please select the local template history to delete",
   "extractSuccess": "Extraction successful, output to: {0}",
-  "downloadOrExtractError": "Download or extraction error",
+  "downloadOrExtractError": "Download or extraction error: {0}",
   "imagesDir.desc": "Image output directory (relative to current working directory, default ./images)",
   "cssDir.desc": "CSS output directory (relative to current working directory, default ./css)",
   "copy.ignore": "Ignore files and directories to be copied. Regular expressions supported",

@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": "https://github.com/wufan123/vs-ex-autohtml",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.70.0"
   },
   "categories": [
     "Other"

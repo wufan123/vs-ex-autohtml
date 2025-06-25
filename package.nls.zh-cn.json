@@ -30,7 +30,7 @@
   "chooseLocalHistoryOrSelect": "请选择本地模板历史或选择新文件夹",
   "selectDeleteLocalHistory": "请选择要删除的本地模板历史",
   "extractSuccess": "解压成功，已输出到: {0}",
-  "downloadOrExtractError": "下载或解压错误",
+  "downloadOrExtractError": "下载或解压错误: {0}",
   "imagesDir.desc": "图片输出目录（相对当前操作目录，默认 ./images）",
   "cssDir.desc": "样式输出目录（相对当前操作目录，默认 ./css）",
   "copy.ignore": "忽略需要拷贝的文件和目录。支持正则表达式",
