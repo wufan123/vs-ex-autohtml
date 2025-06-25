@@ -29,7 +29,6 @@
   "deleteLocalHistoryDesc": "选择要删除的本地模板历史",
   "chooseLocalHistoryOrSelect": "请选择本地模板历史或选择新文件夹",
   "selectDeleteLocalHistory": "请选择要删除的本地模板历史",
-  "extracting": "正在解压...",
   "extractSuccess": "解压成功，已输出到: {0}",
   "downloadOrExtractError": "下载或解压错误",
   "imagesDir.desc": "图片输出目录（相对当前操作目录，默认 ./images）",
@@ -39,5 +38,13 @@
   "refactorHtmlMissing": "缺失html文件:{0}",
   "refactorDone": "重构{0}完成",
   "refactorResourcesDone": "重构资源完成，文件数量：{0}",
-  "moduleNameError": "模块zip包名称错误，应该用连接线连接页面名称和模块名称，比如{页面}-{模块}"
+  "moduleNameError": "模块zip包名称错误，应该用连接线连接页面名称和模块名称，比如{页面}-{模块}", 
+  "refactorProgress": "重构{0}进度",
+  "extracting": "正在解压...",
+  "handlingExtractedFolder": "正在处理解压后的文件夹",
+  "refactorError": "重构出错",
+  "deletingZip": "正在删除zip包",
+  "processingImages": "正在处理图片",
+  "processingCss": "正在处理样式文件",
+  "processingHtml": "正在处理HTML"
 }
