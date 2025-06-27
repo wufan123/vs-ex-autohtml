@@ -301,12 +301,12 @@ function handleCssContent(styleContent: string) {
         const flexDirMatch = body.match(/flex-direction\s*:\s*(row|column)\s*;/i);
         const gapMatch = body.match(/gap\s*:\s*([^;]+);/i);
         if (!gapMatch) return match;
-        let marginProp = 'margin-left';
-        if (flexDirMatch && flexDirMatch[1].trim() === 'column') { 
-            marginProp = 'margin-top';
+        let marginProp = 'margin-right';
+        if (flexDirMatch && flexDirMatch[1].trim() === 'column') {
+            marginProp = 'margin-bottom';
         }
         const gapValue = gapMatch[1];
-        extra += `\n${selector}>*+* { ${marginProp}: ${gapValue}; }`;
+        extra += `\n${selector}>* { ${marginProp}: ${gapValue}; }`;
         // 移除 gap 属性
         const newBody = body.replace(/gap\s*:\s*[^;]+;/i, '');
         return `${selector} {${newBody}}`;
