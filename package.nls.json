@@ -1,6 +1,7 @@
 {
   "autohtmlSettings": "Extension Settings",
   "getTheTemplate": "AUTOHTML_Get Template",
+  "refactor": "AUTOHTML_Refactor",
   "refactorPage": "AUTOHTML_Refactor Page",
   "refactorModule": "AUTOHTML_Refactor Module",
   "insertAutoHtmlComment": "AUTOHTML_Insert Comment",

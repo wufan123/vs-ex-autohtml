@@ -2,7 +2,7 @@
   "name": "vs-ex-autohtml",
   "displayName": "autohtml",
   "description": "autohtml",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "waslong",
   "icon": "media/logo.png",
   "license": "MIT",
@@ -22,12 +22,8 @@
         "title": "%getTheTemplate%"
       },
       {
-        "command": "vs-ex-autohtml.refactorPage",
-        "title": "%refactorPage%"
-      },
-      {
-        "command": "vs-ex-autohtml.refactorModule",
-        "title": "%refactorModule%"
+        "command": "vs-ex-autohtml.refactor",
+        "title": "%refactor%"
       },
       {
         "command": "vs-ex-autohtml.refactorResources",
@@ -77,14 +73,9 @@
           "group": "navigation@100"
         },
         {
-          "command": "vs-ex-autohtml.refactorPage",
+          "command": "vs-ex-autohtml.refactor",
           "when": "explorerResourceIsFolder == false && resourceExtname == .zip",
           "group": "navigation@101"
-        },
-        {
-          "command": "vs-ex-autohtml.refactorModule",
-          "when": "explorerResourceIsFolder == false && resourceExtname == .zip",
-          "group": "navigation@102"
         }
       ],
       "editor/context": [

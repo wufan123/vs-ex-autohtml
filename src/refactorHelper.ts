@@ -9,6 +9,19 @@ import { promisify } from 'util';
 const pipelineAsync = promisify(pipeline);
 
 const imageExts = ['.svg', '.png', '.jpg'];
+export function refactor(context: vscode.ExtensionContext, uri?: vscode.Uri) {
+    if (!uri || !uri.fsPath || !/\.zip$/i.test(uri.fsPath)) {
+        vscode.window.showErrorMessage(nls.localize('refactorNotZip'));
+        return;
+    }
+    const zipPath = uri.fsPath;
+    const baseName = path.basename(zipPath, '.zip');
+    if (baseName.includes('-')) {
+        refactorModule(context, uri);
+    } else {
+        refactorPage(context, uri);
+    }
+}
 
 export async function refactorPage(context: vscode.ExtensionContext, uri?: vscode.Uri) {
     if (!uri || !uri.fsPath || !/\.zip$/i.test(uri.fsPath)) {
@@ -69,7 +82,6 @@ export async function refactorModule(context: vscode.ExtensionContext, uri?: vsc
     const zipPath = uri.fsPath;
     const baseName = path.basename(zipPath, '.zip');
     var nameArr = baseName.split("-");
-
     if (nameArr.length < 2) {
         vscode.window.showErrorMessage(nls.localize('moduleNameError'));
         return;
@@ -276,6 +288,61 @@ export async function refactorResources(context: vscode.ExtensionContext, uri?: 
     );
 }
 
+function handleCssContent(styleContent: string) {
+    // 将 var(--*, value) 替换为 value，支持 #488dff、0.22rem、100% 等
+    styleContent = styleContent.replace(/var\([^)]+?,\s*([^)]+?)\)/g, '$1');
+    styleContent = styleContent.replace(/var\([^)]+?,\s*([^)]+?)\)/g, '$1');
+    // 替换 gap: xxx; 为去掉 gap，并添加 .xxx>*+* { margin-xxx: xxx; }
+    // 修正正则，确保 flex-direction 捕获正确（允许属性间有任意顺序和空格）
+    const gapFlexRegex = /(\.[\w\-]+)\s*\{([^}]*)\}/g;
+    let extra = '';
+    styleContent = styleContent.replace(gapFlexRegex, (match, selector, body) => {
+        // 查找 flex-direction 和 gap
+        const flexDirMatch = body.match(/flex-direction\s*:\s*(row|column)\s*;/i);
+        const gapMatch = body.match(/gap\s*:\s*([^;]+);/i);
+        if (!gapMatch) return match;
+        let marginProp = 'margin-left';
+        if (flexDirMatch && flexDirMatch[1].trim() === 'column') { 
+            marginProp = 'margin-top';
+        }
+        const gapValue = gapMatch[1];
+        extra += `\n${selector}>*+* { ${marginProp}: ${gapValue}; }`;
+        // 移除 gap 属性
+        const newBody = body.replace(/gap\s*:\s*[^;]+;/i, '');
+        return `${selector} {${newBody}}`;
+    });
+    styleContent += extra;
+    return styleContent;
+}
+// 优化CSS移动与合并，采用异步API和流式追加
+async function moveCss(folderPath: string, cssDirName: string, baseName: string) {
+    const stylePath = path.join(folderPath, 'style.css');
+    const cssDir = path.join(folderPath, cssDirName);
+    let newCssName = '';
+    let newCssPath = '';
+    if (fs.existsSync(stylePath)) {
+        if (!fs.existsSync(cssDir)) {
+            fs.mkdirSync(cssDir, { recursive: true });
+        }
+        newCssName = `${baseName}.css`;
+        newCssPath = path.join(cssDir, newCssName);
+        const styleContentRaw = await fs.promises.readFile(stylePath, 'utf-8');
+        const styleContent = handleCssContent(styleContentRaw);
+        // 如果目标已存在，采用流式追加
+        if (fs.existsSync(newCssPath)) {
+            const cssContent = await fs.promises.readFile(newCssPath, 'utf-8');
+            if (!cssContent.includes(styleContent)) {
+                await fs.promises.appendFile(newCssPath, '\n' + styleContent);
+            }
+            await fs.promises.unlink(stylePath);
+        } else {
+            await fs.promises.writeFile(newCssPath, styleContent, 'utf-8');
+            await fs.promises.unlink(stylePath);
+        }
+    }
+    return { newCssName, newCssPath };
+}
+
 function copyCssContent(folderPath: string, cssDirName: string, pageName: string, moduleName: string) {
     const stylePath = path.join(folderPath, 'style.css');
     const pageCssPath = path.join(folderPath, cssDirName, `${pageName}.css`);
@@ -290,11 +357,14 @@ function copyCssContent(folderPath: string, cssDirName: string, pageName: string
         const pageCssContent = fs.readFileSync(pageCssPath, 'utf-8');
         const normalize = (s: string) => s.replace(/\s+/g, '');
         if (!normalize(pageCssContent).includes(normalize(styleContent))) {
+            // 替换 var(--*, #xxxxxx) 为 #xxxxxx
+            styleContent = handleCssContent(styleContent);
             fs.appendFileSync(pageCssPath, '\n' + styleContent);
         }
         fs.unlinkSync(stylePath);
     }
 }
+
 async function deleteZip(zipPath: string) {
     // 如果面板中有打开zip文件，则关闭面板
     for (const tabGroup of vscode.window.tabGroups.all) {
@@ -353,6 +423,7 @@ async function moveImages(
     return { imagesDir, fileMap };
 }
 
+
 // 用流式方式移动大文件
 async function moveFileStream(src: string, dst: string) {
     await pipelineAsync(
@@ -393,32 +464,7 @@ function hashFile(filePath: string): Promise<string> {
     });
 }
 
-// 优化CSS移动与合并，采用异步API和流式追加
-async function moveCss(folderPath: string, cssDirName: string, baseName: string) {
-    const stylePath = path.join(folderPath, 'style.css');
-    const cssDir = path.join(folderPath, cssDirName);
-    let newCssName = '';
-    let newCssPath = '';
-    if (fs.existsSync(stylePath)) {
-        if (!fs.existsSync(cssDir)) {
-            fs.mkdirSync(cssDir, { recursive: true });
-        }
-        newCssName = `${baseName}.css`;
-        newCssPath = path.join(cssDir, newCssName);
-        // 如果目标已存在，采用流式追加
-        if (fs.existsSync(newCssPath)) {
-            const styleContent = await fs.promises.readFile(stylePath, 'utf-8');
-            const cssContent = await fs.promises.readFile(newCssPath, 'utf-8');
-            if (!cssContent.includes(styleContent)) {
-                await fs.promises.appendFile(newCssPath, '\n' + styleContent);
-            }
-            await fs.promises.unlink(stylePath);
-        } else {
-            await moveFileStream(stylePath, newCssPath);
-        }
-    }
-    return { newCssName, newCssPath };
-}
+
 
 // 优化HTML读写，采用异步API
 async function processHtml(

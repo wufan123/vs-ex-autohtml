@@ -1,6 +1,7 @@
 {
   "autohtmlSettings": "插件设置",
   "getTheTemplate": "AUTOHTML_获取模板",
+  "refactor": "AUTOHTML_重构",
   "refactorPage": "AUTOHTML_重构页面",
   "refactorModule": "AUTOHTML_重构模块",
   "insertAutoHtmlComment": "AUTOHTML_插入注释",
@@ -38,7 +39,7 @@
   "refactorHtmlMissing": "缺失html文件:{0}",
   "refactorDone": "重构{0}完成",
   "refactorResourcesDone": "重构资源完成，文件数量：{0}",
-  "moduleNameError": "模块zip包名称错误，应该用连接线连接页面名称和模块名称，比如{页面}-{模块}", 
+  "moduleNameError": "模块zip包名称错误，应该用连接线连接页面名称和模块名称，比如{页面}-{模块}",
   "refactorProgress": "重构{0}进度",
   "extracting": "正在解压...",
   "handlingExtractedFolder": "正在处理解压后的文件夹",
