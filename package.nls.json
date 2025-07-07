@@ -47,5 +47,6 @@
   "deletingZip": "Deleting zip package",
   "processingImages": "Processing images",
   "processingCss": "Processing CSS files",
-  "processingHtml": "Processing HTML"
+  "processingHtml": "Processing HTML",
+  "cssCompatibilityHandling.desc": "CSS兼容性处理，勾选的话，会预处理css以尽可能兼容旧版"
 }

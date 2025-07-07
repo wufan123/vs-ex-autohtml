@@ -150,10 +150,10 @@ export async function refactorModule(context: vscode.ExtensionContext, uri?: vsc
                     return match;
                 });
                 html = `
-    <!-- ${moduleName} --start -->
-    ${html}
-    <!-- ${moduleName} --end -->
-    `;
+                <!-- ${moduleName} --start -->
+                ${html}
+                <!-- ${moduleName} --end -->
+                `;
                 baseHtml = baseHtml.replace(/<!--\s*autohtml\s*-->/i, html);
                 fs.writeFileSync(pageHtmlPath, baseHtml, 'utf-8');
                 fs.unlinkSync(htmlPath);
@@ -289,9 +289,14 @@ export async function refactorResources(context: vscode.ExtensionContext, uri?: 
 }
 
 function handleCssContent(styleContent: string) {
+    const config = vscode.workspace.getConfiguration('autohtml');
+    const cssCompatibilityHandling = config.get<string>('m05.cssCompatibilityHandling');
     // 将 var(--*, value) 替换为 value，支持 #488dff、0.22rem、100% 等
     styleContent = styleContent.replace(/var\([^)]+?,\s*([^)]+?)\)/g, '$1');
     styleContent = styleContent.replace(/var\([^)]+?,\s*([^)]+?)\)/g, '$1');
+    if (!cssCompatibilityHandling) {
+        return styleContent;
+    }
     // 替换 gap: xxx; 为去掉 gap，并添加 .xxx>*+* { margin-xxx: xxx; }
     // 修正正则，确保 flex-direction 捕获正确（允许属性间有任意顺序和空格）
     const gapFlexRegex = /(\.[\w\-]+)\s*\{([^}]*)\}/g;
@@ -306,7 +311,7 @@ function handleCssContent(styleContent: string) {
             marginProp = 'margin-bottom';
         }
         const gapValue = gapMatch[1];
-        extra += `\n${selector}>* { ${marginProp}: ${gapValue}; }`;
+        extra += `\n${selector}>*:not(:last-child) { ${marginProp}: ${gapValue}; }`;
         // 移除 gap 属性
         const newBody = body.replace(/gap\s*:\s*[^;]+;/i, '');
         return `${selector} {${newBody}}`;
@@ -330,8 +335,13 @@ async function moveCss(folderPath: string, cssDirName: string, baseName: string)
         const styleContent = handleCssContent(styleContentRaw);
         // 如果目标已存在，采用流式追加
         if (fs.existsSync(newCssPath)) {
-            const cssContent = await fs.promises.readFile(newCssPath, 'utf-8');
+            let cssContent = await fs.promises.readFile(newCssPath, 'utf-8');
             if (!cssContent.includes(styleContent)) {
+                cssContent = `
+                /* ${baseName} --start */
+                ${cssContent}
+                /* ${baseName} --end */
+                `;
                 await fs.promises.appendFile(newCssPath, '\n' + styleContent);
             }
             await fs.promises.unlink(stylePath);
@@ -348,17 +358,17 @@ function copyCssContent(folderPath: string, cssDirName: string, pageName: string
     const pageCssPath = path.join(folderPath, cssDirName, `${pageName}.css`);
     if (fs.existsSync(pageCssPath) && fs.existsSync(stylePath)) {
         let styleContent = fs.readFileSync(stylePath, 'utf-8');
-        styleContent = `
-        /* ${moduleName} --start */
-        ${styleContent}
-        /* ${moduleName} --end */
-        `;
         // 读取目标css内容，忽略换行和空格后判断是否已包含
         const pageCssContent = fs.readFileSync(pageCssPath, 'utf-8');
         const normalize = (s: string) => s.replace(/\s+/g, '');
         if (!normalize(pageCssContent).includes(normalize(styleContent))) {
             // 替换 var(--*, #xxxxxx) 为 #xxxxxx
             styleContent = handleCssContent(styleContent);
+            styleContent = `
+            /* ${moduleName} --start */
+            ${styleContent}
+            /* ${moduleName} --end */
+            `;
             fs.appendFileSync(pageCssPath, '\n' + styleContent);
         }
         fs.unlinkSync(stylePath);

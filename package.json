@@ -2,7 +2,7 @@
   "name": "vs-ex-autohtml",
   "displayName": "autohtml",
   "description": "autohtml",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "waslong",
   "icon": "media/logo.png",
   "license": "MIT",
@@ -57,6 +57,11 @@
           "type": "string",
           "default": "css",
           "description": "%cssDir.desc%"
+        },
+        "autohtml.m05.cssCompatibilityHandling": {
+          "type": "boolean",
+          "default": false,
+          "description": "%cssCompatibilityHandling.desc%"
         }
       }
     },

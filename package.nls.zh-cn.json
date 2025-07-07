@@ -47,5 +47,6 @@
   "deletingZip": "正在删除zip包",
   "processingImages": "正在处理图片",
   "processingCss": "正在处理样式文件",
-  "processingHtml": "正在处理HTML"
+  "processingHtml": "正在处理HTML",
+  "cssCompatibilityHandling.desc": "CSS兼容性处理，勾选的话，会预处理css以尽可能兼容旧版"
 }
