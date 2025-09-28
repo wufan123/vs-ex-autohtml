@@ -5,6 +5,7 @@
   "refactorPage": "AUTOHTML_重构页面",
   "refactorModule": "AUTOHTML_重构模块",
   "insertAutoHtmlComment": "AUTOHTML_插入注释",
+  "img2bg": "AUTOHTML_img2bg",
   "refactorResources": "AUTOHTML_重构资源",
   "inputDownloadUrl": "请输入要下载的链接",
   "inputNewUrl": "输入新链接",
@@ -48,5 +49,11 @@
   "processingImages": "正在处理图片",
   "processingCss": "正在处理样式文件",
   "processingHtml": "正在处理HTML",
-  "cssCompatibilityHandling.desc": "CSS兼容性处理，勾选的话，会预处理css以尽可能兼容旧版"
+  "cssCompatibilityHandling.desc": "CSS兼容性处理，勾选的话，会预处理css以尽可能兼容旧版",
+  "destNotEmptyOverwrite": "当前文件夹非空，是否覆盖已有的相同文件？",
+  "yes": "是",
+  "no": "否",
+  "overwriteYes": "覆盖",
+  "overwriteNo": "不覆盖",
+  "copyCancelled": "已取消拷贝"
 }
