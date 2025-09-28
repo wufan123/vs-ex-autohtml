@@ -32,10 +32,6 @@
       {
         "command": "vs-ex-autohtml.insertAutoHtmlComment",
         "title": "%insertAutoHtmlComment%"
-      },
-      {
-        "command": "vs-ex-autohtml.img2bg",
-        "title": "%img2bg%"
       }
     ],
     "configuration": {
